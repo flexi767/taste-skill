@@ -1,11 +1,12 @@
 ---
 name: design-taste-frontend
-description: Anti-slop frontend skill for landing pages, portfolios, and redesigns. The agent reads the brief, infers the right design direction, and ships interfaces that do not look templated. Real design systems when applicable, audit-first on redesigns, strict pre-flight check.
+description: Anti-slop frontend skill for landing pages, portfolios, redesigns, and product UI (dashboards, data tables, admin panels, editors). The agent reads the brief, infers the right design direction, and ships interfaces that do not look templated. Real design systems when applicable, audit-first on redesigns, strict pre-flight check.
 ---
 
 # tasteskill: Anti-Slop Frontend Skill
 
-> Landing pages, portfolios, and redesigns. Not dashboards, not data tables, not multi-step product UI.
+> Landing pages, portfolios, redesigns, and product UI (dashboards, data tables, editors).
+> Product UI is a distinct lane: low variance, restrained motion, high density. See the presets in 1.B.
 > Every rule below is **contextual**. None of it fires automatically. First read the brief, then pull only what fits.
 
 ---
@@ -44,11 +45,13 @@ Do not default to: AI-purple gradients, centered hero over dark mesh, three equa
 
 After the design read, set three dials. Every layout, motion, and density decision below is gated by these.
 
-* **`DESIGN_VARIANCE: 8`** - 1 = Perfect Symmetry, 10 = Artsy Chaos
-* **`MOTION_INTENSITY: 6`** - 1 = Static, 10 = Cinematic / Physics
-* **`VISUAL_DENSITY: 4`** - 1 = Art Gallery / Airy, 10 = Cockpit / Packed Data
+* **`DESIGN_VARIANCE: 4`** - 1 = Perfect Symmetry, 10 = Artsy Chaos
+* **`MOTION_INTENSITY: 3`** - 1 = Static, 10 = Cinematic / Physics
+* **`VISUAL_DENSITY: 7`** - 1 = Art Gallery / Airy, 10 = Cockpit / Packed Data
 
-**Baseline:** `8 / 6 / 4`. Use these unless the design read overrides them. Do not ask the user to edit this file - overrides happen conversationally.
+**Baseline:** `4 / 3 / 7`, tuned for product UI. Marketing work overrides upward via the
+landing-page rows below - the design read still wins. (Upstream default is `8 / 6 / 4`.)
+Use these unless the design read overrides them. Do not ask the user to edit this file - overrides happen conversationally.
 
 ### 1.A Dial Inference (design read → dial values)
 | Signal | VARIANCE | MOTION | DENSITY |
@@ -57,6 +60,7 @@ After the design read, set three dials. Every layout, motion, and density decisi
 | "premium consumer / Apple-y / luxury / brand" | 7-8 | 5-7 | 3-4 |
 | "playful / wild / Dribbble / Awwwards / experimental / agency" | 9-10 | 8-10 | 3-4 |
 | "landing page / portfolio / marketing site (default)" | 7-9 | 6-8 | 3-5 |
+| "dashboard / data table / editor / admin / product UI / shadcn / Radix" | 3-4 | 2-3 | 7-8 |
 | "trust-first / public-sector / regulated / accessibility-critical" | 3-4 | 2-3 | 4-5 |
 | "redesign - preserve" | match existing | +1 | match existing |
 | "redesign - overhaul" | +2 | +2 | match existing |
@@ -70,6 +74,9 @@ After the design read, set three dials. Every layout, motion, and density decisi
 | Portfolio (Designer / studio) | 8 | 7 | 3 |
 | Portfolio (Developer) | 6 | 5 | 4 |
 | Editorial / Blog | 6 | 4 | 3 |
+| Dashboard / analytics | 3 | 2 | 8 |
+| Editor / creative tool | 4 | 3 | 7 |
+| Admin / internal tool | 3 | 2 | 7 |
 | Public-sector service | 3 | 2 | 5 |
 | Redesign - preserve | match | match+1 | match |
 | Redesign - overhaul | +2 | +2 | match |
