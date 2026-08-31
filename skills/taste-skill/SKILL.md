@@ -903,14 +903,19 @@ stack: ["react", "next", "tailwind", "motion"]
 ## 13. OUT OF SCOPE
 
 This skill is NOT for:
-* Dashboards / dense product UI / admin panels (use Fluent, Carbon, Atlassian, or Polaris from Section 2.A).
-* Data tables (use TanStack Table or AG Grid).
+* Data-grid engines (use TanStack Table or AG Grid for virtualization, column resizing, pinning). The
+  product-UI lane covers how a dashboard should *look*; it does not replace a table library.
 * Multi-step forms / wizards (use Form-specific patterns; this skill won't make them better).
 * Code editors (use Monaco / CodeMirror with their official skinning).
 * Native mobile (use Apple HIG / Material directly).
 * Realtime collab UIs (presence, cursors, OT-aware - different problem class).
 
 If the brief is one of the above, **say so explicitly**, point to the right tool, and only apply this skill's marketing-page / about-page / landing-page parts to the surfaces where they apply.
+
+**Product UI is in scope** (Section 1.B presets). For dashboards and admin panels, reaching for Fluent,
+Carbon, Atlassian, or Polaris from Section 2.A is still the right call when the brief matches that
+ecosystem. When it does not, the product-UI dials apply directly: low variance, restrained motion,
+high density, hairlines instead of card boxes, `font-mono` on every number.
 
 ---
 
