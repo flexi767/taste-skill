@@ -1,0 +1,341 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Crawl Control</title>
+<style>
+/* Dials under test: DESIGN_VARIANCE 4 / MOTION_INTENSITY 3 / VISUAL_DENSITY 7 */
+:root{
+  --bg:#fbfbfa; --panel:#ffffff; --line:#e4e4e1; --line-soft:#eeeeec;
+  --ink:#1c1c1a; --ink-2:#5c5c57; --ink-3:#8a8a83;
+  --accent:#0f766e;
+  --ok:#0f766e; --warn:#a16207; --err:#b91c1c; --idle:#a1a1a0;
+  --grid:#efefec;
+  --r:6px;
+}
+:root[data-theme="dark"]{
+  --bg:#0d0d0e; --panel:#141416; --line:#26262a; --line-soft:#1d1d20;
+  --ink:#eaeaea; --ink-2:#9d9da3; --ink-3:#6b6b72;
+  --accent:#2dd4bf;
+  --ok:#2dd4bf; --warn:#d4a017; --err:#f0616d; --idle:#55555c;
+  --grid:#1c1c1f;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#0d0d0e; --panel:#141416; --line:#26262a; --line-soft:#1d1d20;
+    --ink:#eaeaea; --ink-2:#9d9da3; --ink-3:#6b6b72;
+    --accent:#2dd4bf;
+    --ok:#2dd4bf; --warn:#d4a017; --err:#f0616d; --idle:#55555c;
+    --grid:#1c1c1f;
+  }
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{-webkit-text-size-adjust:100%}
+body{
+  background:var(--bg); color:var(--ink);
+  font:400 13px/1.45 ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  font-feature-settings:"cv05","ss01";
+  -webkit-font-smoothing:antialiased;
+}
+.num{font-family:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,monospace;font-variant-numeric:tabular-nums}
+.shell{max-width:1400px;margin:0 auto;padding:0 20px 56px}
+
+/* ---- top bar: single line, 56px ---- */
+.top{
+  height:56px;display:flex;align-items:center;gap:18px;
+  border-bottom:1px solid var(--line);position:sticky;top:0;background:var(--bg);z-index:10;
+}
+.brand{font-weight:600;letter-spacing:-.01em;font-size:13.5px}
+.env{
+  font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-2);
+  border:1px solid var(--line);border-radius:var(--r);padding:2px 7px;
+}
+.top nav{display:flex;gap:2px;margin-left:6px}
+.top nav a{
+  color:var(--ink-2);text-decoration:none;font-size:12.5px;padding:5px 9px;border-radius:var(--r);
+  transition:color .15s,background .15s;
+}
+.top nav a:hover{color:var(--ink);background:var(--line-soft)}
+.top nav a[aria-current]{color:var(--ink);background:var(--line-soft)}
+.top .sp{margin-left:auto}
+.stamp{color:var(--ink-3);font-size:11.5px}
+.tbtn{
+  border:1px solid var(--line);background:transparent;color:var(--ink-2);
+  border-radius:var(--r);padding:4px 9px;font:inherit;font-size:11.5px;cursor:pointer;
+  transition:color .15s,border-color .15s,transform .06s;
+}
+.tbtn:hover{color:var(--ink);border-color:var(--ink-3)}
+.tbtn:active{transform:translateY(1px)}
+.tbtn:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+/* ---- KPI strip: hairlines, no card boxes ---- */
+.kpis{
+  display:grid;grid-template-columns:repeat(5,1fr);
+  border-bottom:1px solid var(--line);
+}
+.kpi{padding:14px 20px 15px;border-left:1px solid var(--line-soft)}
+.kpi:first-child{border-left:0;padding-left:0}
+.kpi .k{font-size:11px;color:var(--ink-3);letter-spacing:.02em}
+.kpi .v{font-size:25px;line-height:1.15;letter-spacing:-.02em;margin-top:5px}
+.kpi .v small{font-size:13px;color:var(--ink-3);letter-spacing:0}
+.kpi .d{font-size:11.5px;margin-top:3px;color:var(--ink-2)}
+.up{color:var(--ok)} .down{color:var(--err)}
+
+/* ---- panels ---- */
+.row{display:grid;gap:0;border-bottom:1px solid var(--line)}
+.row.two{grid-template-columns:1.62fr 1fr}
+.row.three{grid-template-columns:1fr 1fr 1fr}
+.pane{padding:16px 20px 18px;border-left:1px solid var(--line-soft);min-width:0}
+.pane:first-child{border-left:0;padding-left:0}
+.ph{display:flex;align-items:baseline;gap:10px;margin-bottom:14px}
+.ph h2{font-size:12.5px;font-weight:600;letter-spacing:-.005em}
+.ph .meta{font-size:11px;color:var(--ink-3);margin-left:auto}
+
+/* ---- charts ---- */
+.chart{width:100%;height:auto;display:block;overflow:visible}
+.chart .gl{stroke:var(--grid);stroke-width:1}
+.chart .ax{fill:var(--ink-3);font-size:9.5px;font-family:ui-monospace,Menlo,monospace}
+.chart .ln{fill:none;stroke:var(--accent);stroke-width:1.5;stroke-linejoin:round}
+.chart .ar{fill:var(--accent);opacity:.10}
+.chart .lnb{fill:none;stroke:var(--err);stroke-width:1.5;stroke-linejoin:round}
+.chart .thr{stroke:var(--err);stroke-width:1;stroke-dasharray:3 3;opacity:.5}
+
+/* ---- worker bars ---- */
+.bars{display:grid;gap:9px}
+.bar{display:grid;grid-template-columns:82px 1fr 62px;align-items:center;gap:10px}
+.bar .bl{font-size:11.5px;color:var(--ink-2)}
+.bar .bt{height:6px;border-radius:3px;background:var(--line);overflow:hidden}
+.bar .bf{height:100%;border-radius:3px;background:var(--accent)}
+.bar .bf.w{background:var(--warn)}
+.bar .bf.e{background:var(--err)}
+.bar .bv{font-size:11.5px;color:var(--ink-2);text-align:right}
+
+/* ---- table ---- */
+table{width:100%;border-collapse:collapse}
+thead th{
+  text-align:left;font-size:10.5px;font-weight:500;letter-spacing:.06em;text-transform:uppercase;
+  color:var(--ink-3);padding:0 10px 8px 0;border-bottom:1px solid var(--line);white-space:nowrap;
+}
+thead th.r,tbody td.r{text-align:right;padding-right:0}
+tbody td{padding:7px 10px 7px 0;border-bottom:1px solid var(--line-soft);font-size:12.5px;white-space:nowrap}
+tbody tr:hover td{background:var(--line-soft)}
+tbody tr:last-child td{border-bottom:0}
+.st{display:inline-flex;align-items:center;gap:7px}
+.dot{width:6px;height:6px;border-radius:50%;flex:none}
+.dot.ok{background:var(--ok)} .dot.warn{background:var(--warn)}
+.dot.err{background:var(--err)} .dot.idle{background:var(--idle)}
+.job{font-weight:500}
+.host{color:var(--ink-2)}
+.muted{color:var(--ink-3)}
+.pct.bad{color:var(--err)} .pct.warn{color:var(--warn)}
+
+/* ---- states ---- */
+.banner{
+  display:flex;gap:10px;align-items:flex-start;padding:10px 12px;margin-bottom:14px;
+  border:1px solid var(--line);border-left:2px solid var(--err);border-radius:var(--r);
+  background:var(--panel);
+}
+.banner .bd{font-size:12px;color:var(--ink-2)}
+.banner strong{color:var(--ink);font-weight:600;font-size:12.5px;display:block;margin-bottom:2px}
+.empty{
+  border:1px dashed var(--line);border-radius:var(--r);padding:22px 16px;text-align:center;
+}
+.empty p{font-size:12px;color:var(--ink-3);max-width:34ch;margin:0 auto}
+.empty .eh{font-size:12.5px;color:var(--ink-2);margin-bottom:4px;font-weight:500}
+.sk{display:grid;gap:8px}
+.sk i{display:block;height:9px;border-radius:3px;background:var(--line-soft)}
+.sk i:nth-child(2){width:76%} .sk i:nth-child(3){width:88%} .sk i:nth-child(4){width:61%}
+@media (prefers-reduced-motion:no-preference){
+  .sk i{animation:pulse 1.6s ease-in-out infinite}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.45}}
+}
+
+/* ---- mobile collapse (< 768px) ---- */
+@media (max-width:1023px){
+  .kpis{grid-template-columns:repeat(3,1fr)}
+  .kpi{padding-left:14px}
+  .kpi:nth-child(3n+1){border-left:0;padding-left:0}
+  .row.two,.row.three{grid-template-columns:1fr}
+  .pane{border-left:0;padding-left:0;border-top:1px solid var(--line-soft)}
+  .pane:first-child{border-top:0}
+}
+@media (max-width:767px){
+  .shell{padding:0 14px 40px}
+  .kpis{grid-template-columns:repeat(2,1fr)}
+  .kpi:nth-child(3n+1){border-left:1px solid var(--line-soft);padding-left:14px}
+  .kpi:nth-child(2n+1){border-left:0;padding-left:0}
+  .top nav{display:none}
+  .tw{overflow-x:auto}
+  .tw table{min-width:660px}
+}
+</style>
+</head>
+<body>
+<div class="shell">
+
+  <header class="top">
+    <span class="brand">Crawl Control</span>
+    <span class="env">prod-eu</span>
+    <nav>
+      <a href="#" aria-current="page">Jobs</a>
+      <a href="#">Workers</a>
+      <a href="#">Proxies</a>
+      <a href="#">Schedules</a>
+    </nav>
+    <span class="sp"></span>
+    <span class="stamp num">updated 00:14 ago</span>
+    <button class="tbtn" id="tt" type="button">Theme</button>
+  </header>
+
+  <section class="kpis" aria-label="Fleet summary">
+    <div class="kpi">
+      <div class="k">Pages / min</div>
+      <div class="v num">1,284</div>
+      <div class="d"><span class="up num">+7.4%</span> <span class="muted">vs 1h</span></div>
+    </div>
+    <div class="kpi">
+      <div class="k">Success rate</div>
+      <div class="v num">96.3<small>%</small></div>
+      <div class="d"><span class="down num">-1.8pt</span> <span class="muted">vs 1h</span></div>
+    </div>
+    <div class="kpi">
+      <div class="k">p95 fetch</div>
+      <div class="v num">2.41<small>s</small></div>
+      <div class="d"><span class="down num">+310ms</span> <span class="muted">vs 1h</span></div>
+    </div>
+    <div class="kpi">
+      <div class="k">Queue depth</div>
+      <div class="v num">8,472</div>
+      <div class="d"><span class="muted">drain in </span><span class="num">6.6m</span></div>
+    </div>
+    <div class="kpi">
+      <div class="k">Workers</div>
+      <div class="v num">24<small>/32</small></div>
+      <div class="d"><span class="muted">3 draining, 5 idle</span></div>
+    </div>
+  </section>
+
+  <section class="row two">
+    <div class="pane">
+      <div class="ph">
+        <h2>Throughput</h2>
+        <span class="meta num">pages/min, last 6h</span>
+      </div>
+      <svg class="chart" viewBox="0 0 640 168" role="img" aria-label="Throughput over the last six hours, ranging 900 to 1500 pages per minute">
+        <line class="gl" x1="30" y1="16"  x2="640" y2="16"/>
+        <line class="gl" x1="30" y1="54"  x2="640" y2="54"/>
+        <line class="gl" x1="30" y1="92"  x2="640" y2="92"/>
+        <line class="gl" x1="30" y1="130" x2="640" y2="130"/>
+        <text class="ax" x="0" y="20">1500</text>
+        <text class="ax" x="0" y="58">1300</text>
+        <text class="ax" x="0" y="96">1100</text>
+        <text class="ax" x="0" y="134">900</text>
+        <path class="ar" d="M30,88 L81,79 L132,95 L183,71 L234,64 L285,83 L336,58 L387,44 L438,67 L489,52 L540,39 L591,47 L640,33 L640,130 L30,130 Z"/>
+        <path class="ln" d="M30,88 L81,79 L132,95 L183,71 L234,64 L285,83 L336,58 L387,44 L438,67 L489,52 L540,39 L591,47 L640,33"/>
+        <text class="ax" x="30"  y="150">18:00</text>
+        <text class="ax" x="234" y="150">20:00</text>
+        <text class="ax" x="438" y="150">22:00</text>
+        <text class="ax" x="600" y="150">now</text>
+      </svg>
+    </div>
+    <div class="pane">
+      <div class="ph">
+        <h2>Error rate</h2>
+        <span class="meta num">%, threshold 4.0</span>
+      </div>
+      <svg class="chart" viewBox="0 0 380 168" role="img" aria-label="Error rate over the last six hours, crossing the four percent threshold in the final hour">
+        <line class="gl" x1="26" y1="16"  x2="380" y2="16"/>
+        <line class="gl" x1="26" y1="54"  x2="380" y2="54"/>
+        <line class="gl" x1="26" y1="92"  x2="380" y2="92"/>
+        <line class="gl" x1="26" y1="130" x2="380" y2="130"/>
+        <text class="ax" x="0" y="20">8</text>
+        <text class="ax" x="0" y="58">6</text>
+        <text class="ax" x="0" y="96">4</text>
+        <text class="ax" x="0" y="134">2</text>
+        <line class="thr" x1="26" y1="92" x2="380" y2="92"/>
+        <path class="lnb" d="M26,124 L56,127 L86,119 L116,122 L146,114 L176,118 L206,109 L236,112 L266,101 L296,96 L326,84 L356,77 L380,71"/>
+        <text class="ax" x="26"  y="150">18:00</text>
+        <text class="ax" x="196" y="150">21:00</text>
+        <text class="ax" x="345" y="150">now</text>
+      </svg>
+    </div>
+  </section>
+
+  <section class="row three">
+    <div class="pane">
+      <div class="ph"><h2>Queue by pool</h2><span class="meta num">8,472 total</span></div>
+      <div class="bars">
+        <div class="bar"><span class="bl">retail-eu</span><span class="bt"><span class="bf" style="width:88%"></span></span><span class="bv num">3,104</span></div>
+        <div class="bar"><span class="bl">news-intl</span><span class="bt"><span class="bf" style="width:64%"></span></span><span class="bv num">2,246</span></div>
+        <div class="bar"><span class="bl">listings-us</span><span class="bt"><span class="bf w" style="width:47%"></span></span><span class="bv num">1,663</span></div>
+        <div class="bar"><span class="bl">docs-crawl</span><span class="bt"><span class="bf" style="width:22%"></span></span><span class="bv num">781</span></div>
+        <div class="bar"><span class="bl">longtail</span><span class="bt"><span class="bf e" style="width:19%"></span></span><span class="bv num">678</span></div>
+      </div>
+    </div>
+    <div class="pane">
+      <div class="ph"><h2>Retry queue</h2><span class="meta num">0 items</span></div>
+      <div class="empty">
+        <div class="eh">Nothing waiting on retry</div>
+        <p>Failed fetches land here after the third attempt. Items clear automatically once a job run succeeds.</p>
+      </div>
+    </div>
+    <div class="pane">
+      <div class="ph"><h2>Proxy health</h2><span class="meta">checking</span></div>
+      <div class="sk" aria-busy="true" aria-label="Loading proxy health">
+        <i></i><i></i><i></i><i></i>
+      </div>
+    </div>
+  </section>
+
+  <section class="row" style="border-bottom:0">
+    <div class="pane" style="padding-top:18px">
+      <div class="banner" role="alert">
+        <span class="dot err" style="margin-top:5px"></span>
+        <span class="bd">
+          <strong>listings-us is returning 429 on 31% of fetches</strong>
+          Rate limit tripped at 22:47. Concurrency dropped to 4 automatically. Next escalation in 12 minutes.
+        </span>
+      </div>
+      <div class="ph">
+        <h2>Jobs</h2>
+        <span class="meta num">9 of 47 shown</span>
+      </div>
+      <div class="tw">
+      <table>
+        <thead>
+          <tr>
+            <th>Status</th><th>Job</th><th>Target</th>
+            <th class="r">Pages</th><th class="r">Err</th><th class="r">p95</th>
+            <th class="r">Last run</th><th class="r">Next</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td><span class="st"><span class="dot err"></span>failing</span></td><td class="job">listings-us-daily</td><td class="host">realtor-index.com</td><td class="r num">14,208</td><td class="r num pct bad">31.2%</td><td class="r num">8.14s</td><td class="r num muted">4m ago</td><td class="r num muted">held</td></tr>
+          <tr><td><span class="st"><span class="dot warn"></span>degraded</span></td><td class="job">longtail-sweep</td><td class="host">mixed (412 hosts)</td><td class="r num">9,471</td><td class="r num pct warn">6.8%</td><td class="r num">4.62s</td><td class="r num muted">11m ago</td><td class="r num muted">00:20</td></tr>
+          <tr><td><span class="st"><span class="dot ok"></span>running</span></td><td class="job">retail-eu-price</td><td class="host">shop.kaufland.de</td><td class="r num">38,904</td><td class="r num">1.4%</td><td class="r num">1.87s</td><td class="r num muted">now</td><td class="r num muted">rolling</td></tr>
+          <tr><td><span class="st"><span class="dot ok"></span>running</span></td><td class="job">retail-eu-stock</td><td class="host">shop.kaufland.de</td><td class="r num">31,662</td><td class="r num">0.9%</td><td class="r num">1.64s</td><td class="r num muted">now</td><td class="r num muted">rolling</td></tr>
+          <tr><td><span class="st"><span class="dot ok"></span>running</span></td><td class="job">news-intl-wire</td><td class="host">24 feeds</td><td class="r num">6,118</td><td class="r num">2.1%</td><td class="r num">0.94s</td><td class="r num muted">now</td><td class="r num muted">rolling</td></tr>
+          <tr><td><span class="st"><span class="dot ok"></span>queued</span></td><td class="job">docs-crawl-refresh</td><td class="host">developer.mozilla.org</td><td class="r num">781</td><td class="r num">0.2%</td><td class="r num">1.12s</td><td class="r num muted">2h ago</td><td class="r num muted">00:31</td></tr>
+          <tr><td><span class="st"><span class="dot idle"></span>paused</span></td><td class="job">archive-backfill</td><td class="host">web.archive.org</td><td class="r num">0</td><td class="r num muted">n/a</td><td class="r num muted">n/a</td><td class="r num muted">3d ago</td><td class="r num muted">manual</td></tr>
+          <tr><td><span class="st"><span class="dot ok"></span>done</span></td><td class="job">retail-eu-catalog</td><td class="host">shop.kaufland.de</td><td class="r num">52,730</td><td class="r num">1.1%</td><td class="r num">2.03s</td><td class="r num muted">47m ago</td><td class="r num muted">06:00</td></tr>
+          <tr><td><span class="st"><span class="dot idle"></span>paused</span></td><td class="job">competitor-snap</td><td class="host">4 hosts</td><td class="r num">0</td><td class="r num muted">n/a</td><td class="r num muted">n/a</td><td class="r num muted">8d ago</td><td class="r num muted">manual</td></tr>
+        </tbody>
+      </table>
+      </div>
+    </div>
+  </section>
+
+</div>
+<script>
+(function(){
+  var r=document.documentElement,b=document.getElementById("tt");
+  b.addEventListener("click",function(){
+    var cur=r.getAttribute("data-theme");
+    if(!cur){cur=matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light";}
+    r.setAttribute("data-theme",cur==="dark"?"light":"dark");
+  });
+})();
+</script>
+</body>
+</html>
