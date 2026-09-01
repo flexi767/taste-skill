@@ -28,7 +28,7 @@ while [[ $# -gt 0 ]]; do
     --all-agents)  targets+=("$HOME/.claude/skills" "$HOME/.codex/skills") ;;
     --list)        mode=list ;;
     --uninstall)   mode=uninstall ;;
-    -h|--help)     sed -n '2,12p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'; exit 0 ;;
+    -h|--help)     awk 'NR>1 { if ($0 !~ /^#/) exit; sub(/^# ?/, ""); print }' "${BASH_SOURCE[0]}"; exit 0 ;;
     -*)            echo "unknown flag: $1" >&2; exit 2 ;;
     *)             wanted+=("$1") ;;
   esac
